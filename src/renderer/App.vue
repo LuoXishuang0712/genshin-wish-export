@@ -4,8 +4,9 @@
       <div>
         <el-button type="primary" :icon="state.status === 'init' ? 'milk-tea': 'refresh-right'" class="focus:outline-none" :disabled="!allowClick()" plain   @click="fetchData()" :loading="state.status === 'loading'">{{state.status === 'init' ? ui.button.load: ui.button.update}}</el-button>
         <el-button icon="folder-opened" @click="saveExcel" class="focus:outline-none" :disabled="!gachaData"  type="success" plain>{{ui.button.excel}}</el-button>
+        <el-button class="focus:outline-none" plain icon="edit" :type="state.showAnalyseStatus ? 'warning' : 'info'" @click="showAnalyse">{{state.showAnalyseStatus ? '返回详细信息' : '分析抽卡数据'}}</el-button>
         <el-tooltip v-if="detail && state.status !== 'loading'" :content="ui.hint.newAccount" placement="bottom">
-          <el-button @click="newUser()" plain icon="plus"  class="focus:outline-none"></el-button>
+          <el-button @click="newUser()" plain icon="plus" class="focus:outline-none"></el-button>
         </el-tooltip>
         <el-tooltip v-if="state.status === 'updated'" :content="ui.hint.relaunchHint" placement="bottom">
           <el-button @click="relaunch()" type="success" icon="refresh"   class="focus:outline-none" style="margin-left: 48px">{{ui.button.directUpdate}}</el-button>
@@ -33,7 +34,7 @@
       </div>
     </div>
     <p class="text-gray-400 my-2 text-xs">{{hint}}</p>
-    <div v-if="detail" class="gap-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-4">
+    <div v-if="detail && !state.showAnalyseStatus" class="gap-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-4">
       <div class="mb-4" v-for="(item, i) of detail" :key="i">
         <div :class="{hidden: state.config.hideNovice && item[0] === '100'}">
           <p class="text-center text-gray-600 my-2">{{typeMap.get(item[0])}}</p>
@@ -41,6 +42,11 @@
           <gacha-detail :i18n="state.i18n" :data="item" :typeMap="typeMap"></gacha-detail>
         </div>
       </div>
+    </div>
+    <div v-if="state.showAnalyseStatus" style="height: 450px; width: 90%; margin: 0 auto;">
+      <div id="line-graph" style="width: 100%; height: 100%;"></div>
+      <p style="width: 100%; color: grey; font-size: 1em;">本页面统计数据来源于对https://github.com/OneBST/GI_gacha_dataset数据集的分析</p>
+      <!-- <echarts :options="option" style="width: 1000px; height: 800px;"></echarts> -->
     </div>
     <Setting v-show="state.showSetting" :i18n="state.i18n" @changeLang="getI18nData()" @close="showSetting(false)"></Setting>
 
@@ -59,13 +65,15 @@
 </template>
 
 <script setup>
-const { ipcRenderer } = require('electron')
 import { reactive, computed, watch, onMounted } from 'vue'
 import PieChart from './components/PieChart.vue'
 import GachaDetail from './components/GachaDetail.vue'
 import Setting from './components/Setting.vue'
+import * as echarts from 'echarts'
 import gachaDetail from './gachaDetail'
 import { version } from '../../package.json'
+const { ipcRenderer } = require('electron')
+const { setTimeout } = require('timers')
 
 const state = reactive({
   status: 'init',
@@ -77,7 +85,8 @@ const state = reactive({
   i18n: null,
   showUrlDlg: false,
   urlInput: '',
-  config: {}
+  config: {},
+  showAnalyseStatus: false,
 })
 
 const ui = computed(() => {
@@ -139,6 +148,213 @@ const typeMap = computed(() => {
   const data = state.dataMap.get(state.current)
   return data.typeMap
 })
+
+const option = {
+  xAxis: {
+    type: 'category',
+    data: null
+  },
+  yAxis: {
+    type: 'value'
+  },
+  tooltip: {
+    show: true,
+    trigger: 'axis',
+  },
+  legend: {
+    show: true,
+    left: 'right',
+    selectedMode: false
+  },
+  series: [
+    {
+      // 分析数据
+      name: '统计数据',
+      data: [0.008370895, 0.00772698, 0.00643915, 0.007083065, 0.00386349, 0.009658725, 0.005795235, 0.00643915, 0.004507405, 0.01030264,
+             0.00643915, 0.005795235, 0.00643915, 0.008370895, 0.003219575, 0.004507405, 0.00515132, 0.00643915, 0.00772698, 0.00772698, 
+             0.00386349, 0.00772698, 0.00772698, 0.004507405, 0.009658725, 0.00515132, 0.001931745, 0.00257566, 0.004507405, 0.00515132,
+             0.005795235, 0.00386349, 0.007083065, 0.004507405, 0.004507405, 0.009658725, 0.00257566, 0.008370895, 0.003219575, 0.00515132, 
+             0.00515132, 0.004507405, 0.00386349, 0.003219575, 0.00515132, 0.00257566, 0.00772698, 0.003219575, 0.00257566, 0.004507405, 
+             0.003219575, 0.005795235, 0.00386349, 0.00386349, 0.003219575, 0.00386349, 0.00257566, 0.00386349, 0.00515132, 0.00643915, 
+             0.00257566, 0.00386349, 0.003219575, 0.003219575, 0.003219575, 0.003219575, 0.00386349, 0.001931745, 0.00257566, 0.003219575, 
+             0.004507405, 0.00257566, 0.003219575, 0.03992273, 0.072762395, 0.105602061, 0.104314231, 0.09916291, 0.085640695, 0.053444945, 
+             0.031551835, 0.023824855, 0.008370895, 0.005795235, 0.00386349, 0.0, 0.000643915, 0.0, 0.0, 0.0],
+      type: 'line',
+      smooth: true,
+      markLine: {
+        data: [
+          [
+            {
+              name: '平均出金点',
+              label: {
+                position: 'end'
+              },
+              coord: ['63', 0],
+              symbol: 'none'
+            },
+            {
+              coord: ['63', 1.0],
+              symbol: 'none'
+            }
+          ],
+          [
+            {
+              name: '最高出金点',
+              label: {
+                position: 'end'
+              },
+              coord: ['76', 0],
+              symbol: 'none'
+            },
+            {
+              coord: ['76', 1.0],
+              symbol: 'none'
+            }
+          ]
+        ]
+      }
+    },
+    {
+      name: '你的数据',
+      data: null,
+      type: 'line',
+      smooth: true,
+      markLine: {
+        data: [
+          [
+            {
+              name: '平均出金点',
+              label: {
+                position: 'middle'
+              },
+              coord: ['63', 0],
+              symbol: 'none'
+            },
+            {
+              coord: ['63', 1.0],
+              symbol: 'none'
+            }
+          ]
+        ]
+      }
+    },
+    // {
+    //   data: [132, 271, 193, 228, 258, 214, 230],
+    //   type: 'line',
+    //   smooth: true,
+    //   markLine: {
+    //     data: [
+    //       [
+    //         {
+    //           coord: ['Tue', 0],
+    //           symbol: 'none'
+    //         },
+    //         {
+    //           name: '周二',
+    //           label: {
+    //             posotion: 'start'
+    //           },
+    //           coord: ['Tue', 300],
+    //           symbol: 'none'
+    //         },
+    //       ]
+    //     ]
+    //   }
+    // }
+  ]
+}
+
+const showAnalyse = async () => {
+  state.showAnalyseStatus = ! state.showAnalyseStatus
+  // console.log(state.showAnalyseStatus)
+  if(!state.showAnalyseStatus){
+    return;
+  }
+  await setTimeout(() => {}, 100);
+  let chartDom = document.getElementById('line-graph')
+  // console.log(chartDom)
+  let myChart = echarts.init(chartDom)
+
+  let tmp = []
+  for(let i = 0; i < 90; i++){
+    tmp.push("" + (i + 1))
+  }
+  option.xAxis.data = tmp
+
+  const data = await ipcRenderer.invoke('READ_DATA')
+  // console.log(data)
+  let calcData = await getAnalyseData(data)
+  option.series[1].data = calcData.freq
+  option.series[1].markLine.data[0][0].coord[0] = "" + calcData.avr
+  option.series[1].markLine.data[0][1].coord[0] = "" + calcData.avr
+  myChart.setOption(option)
+
+  let rangeY = myChart.getModel().getComponent('yAxis').axis.scale._extent;
+  for(let itemIndex1 in option.series){
+    let item1 = option.series[itemIndex1]
+    if(!item1.markLine){
+      continue
+    }
+    for(let itemIndex2 in item1.markLine.data){
+      let item2 = item1.markLine.data[itemIndex2]
+      item2[1].coord[1] = rangeY[1]
+    }
+  }
+  myChart.clear()
+  myChart.setOption(option)
+}
+
+const getAnalyseData = async (mapData) => {
+  let current = mapData.current
+  
+  let userData = null
+  for(let item of mapData.dataMap){
+    if(item[0] === current){
+      userData = item[1]
+      break
+    }
+  }
+
+  let rawData = null
+  for(let item of userData.result){
+    if(item[0] === '301'){ // 角色活动祈愿
+      rawData = item[1]
+    }
+  }
+
+  let countData = []  // 各抽出的频数
+  let count = 0  // 总五星数
+  let lastCount = 0  // 距上一抽
+  let average = 0
+  for(let i = 0; i < 90; i++){
+    countData.push(0)
+  }
+  for(let itemIndex in rawData){
+    let item = rawData[itemIndex]
+    lastCount++
+    if(item[3] === 5){
+      if(lastCount > 90){
+        console.log("?")
+        throw new TypeError("lastCount should between 1 and 90, but get " + lastCount)
+      }
+      countData[lastCount - 1]++
+      count ++
+      lastCount = 0
+    }
+  }
+
+  for(let i = 0; i < 90; i++){
+    average += countData[i] * (i + 1)
+    countData[i] = countData[i] / count
+  }
+  average /= count
+  average = Math.round(average)
+
+  return {
+      freq: countData,
+      avr: average
+    }
+}
 
 const fetchData = async (url) => {
   state.status = 'loading'
