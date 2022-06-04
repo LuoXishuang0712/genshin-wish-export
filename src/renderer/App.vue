@@ -43,7 +43,7 @@
         </div>
       </div>
     </div>
-    <div v-if="state.showAnalyseStatus" style="height: 450px; width: 90%; margin: 0 auto;">
+    <div v-show="state.showAnalyseStatus" style="height: 450px; width: 90%; margin: 0 auto;">
       <div id="line-graph" style="width: 100%; height: 100%;"></div>
       <p style="width: 100%; color: grey; font-size: 1em;">本页面统计数据来源于对https://github.com/OneBST/GI_gacha_dataset数据集的分析</p>
       <!-- <echarts :options="option" style="width: 1000px; height: 800px;"></echarts> -->
@@ -87,6 +87,7 @@ const state = reactive({
   urlInput: '',
   config: {},
   showAnalyseStatus: false,
+  myChart: null,
 })
 
 const ui = computed(() => {
@@ -259,9 +260,12 @@ const showAnalyse = async () => {
   option.series[1].data = calcData.freq
   option.series[1].markLine.data[0][0].coord[0] = "" + calcData.avr
   option.series[1].markLine.data[0][1].coord[0] = "" + calcData.avr
-
-  let chartDom = document.getElementById('line-graph')
-  let myChart = echarts.init(chartDom)
+  if(!state.myChart){
+    let chartDom = document.getElementById('line-graph')
+    state.myChart = echarts.init(chartDom)
+    state.getMyChart = true
+  }
+  let myChart = state.myChart
   myChart.setOption(option)
 
   let rangeY = myChart.getModel().getComponent('yAxis').axis.scale._extent;
