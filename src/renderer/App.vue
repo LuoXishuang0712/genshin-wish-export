@@ -238,29 +238,6 @@ const option = {
         ]
       }
     },
-    // {
-    //   data: [132, 271, 193, 228, 258, 214, 230],
-    //   type: 'line',
-    //   smooth: true,
-    //   markLine: {
-    //     data: [
-    //       [
-    //         {
-    //           coord: ['Tue', 0],
-    //           symbol: 'none'
-    //         },
-    //         {
-    //           name: '周二',
-    //           label: {
-    //             posotion: 'start'
-    //           },
-    //           coord: ['Tue', 300],
-    //           symbol: 'none'
-    //         },
-    //       ]
-    //     ]
-    //   }
-    // }
   ]
 }
 
@@ -270,10 +247,6 @@ const showAnalyse = async () => {
   if(!state.showAnalyseStatus){
     return;
   }
-  await setTimeout(() => {}, 100);
-  let chartDom = document.getElementById('line-graph')
-  // console.log(chartDom)
-  let myChart = echarts.init(chartDom)
 
   let tmp = []
   for(let i = 0; i < 90; i++){
@@ -282,11 +255,13 @@ const showAnalyse = async () => {
   option.xAxis.data = tmp
 
   const data = await ipcRenderer.invoke('READ_DATA')
-  // console.log(data)
   let calcData = await getAnalyseData(data)
   option.series[1].data = calcData.freq
   option.series[1].markLine.data[0][0].coord[0] = "" + calcData.avr
   option.series[1].markLine.data[0][1].coord[0] = "" + calcData.avr
+
+  let chartDom = document.getElementById('line-graph')
+  let myChart = echarts.init(chartDom)
   myChart.setOption(option)
 
   let rangeY = myChart.getModel().getComponent('yAxis').axis.scale._extent;
